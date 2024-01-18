@@ -1,63 +1,27 @@
-
 import requests
 import pandas as pd
 
-def fetch_data(cursor, footprint, headers):
-    try:
-        response = requests.get(
-            f"url{footprint}{cursor}", headers=headers, verify=False)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching data: {e}")
-        return None
+# Initialize an empty list for storing data
+cpeDf = []
 
-def process_service(service):
-    # Extract common fields
-    ip_address = service.get("ip_address", "-")
-    port = service.get("port", "-")
-    domain = service.get("domain", "-")
-    isp = service.get("isp", "-")
+while True:
+    r2 = requests.get(f"url{footprint}{cursor}", headers=headers, verify=False)
+    data2 = r2.json()
+    cursor = data2.get("cursor", None)
 
-    # Process 'cpes' and 'issues' fields
-    cpes_list = list(dict.fromkeys(service.get("cpes", [])))
-    issues_list = service.get("issues", [{"severity": "-", "issue_id_label": "-", 
-                                          "cvss2_base_score": "-", "title": "-", 
-                                          "first_discovered_date": "-", "timestamp": "-", 
-                                          "description": "-"}])
+    for j in data2["services"]:
+        common_data = [j.get(field, "-") for field in ["domain", "ip_address", "port", "isp"]]
+        
+        cpes_list = list(dict.fromkeys(j.get("cpes", ["-"])))
+        issues = j.get("issues", [{}])
 
-    return [(ip_address, port, domain, isp, cpe, issue["severity"], 
-             issue["issue_id_label"], issue["cvss2_base_score"], issue["title"], 
-             issue["first_discovered_date"], issue["timestamp"], issue["description"])
-            for cpe in cpes_list for issue in issues_list]
+        for k in cpes_list:
+            for issue in issues:
+                issue_data = [issue.get(field, "-") for field in ["severity", "issue_id_label", "cvss2_base_score", "title", "first_discovered_date", "timestamp", "description"]]
+                cpeDf.append(common_data + [k] + issue_data)
 
-def main():
-    cursor = ""
-    footprint = ""  # Your footprint value here
-    headers = {}  # Your headers here
+    if cursor is None:
+        break
 
-    all_data = []
-
-    while True:
-        data = fetch_data(cursor, footprint, headers)
-        if data is None:
-            break
-
-        cursor = data.get("cursor")
-        services = data.get("services", [])
-
-        for service in services:
-            all_data.extend(process_service(service))
-
-        if cursor is None:
-            break
-
-    df = pd.DataFrame(all_data, columns=["IP Address", "Port", "Domain", "ISP", "CPE", 
-                                         "Issue Severity", "Issue ID", "CVSS2 Base Score", 
-                                         "Issue Title", "First Discovered Date", 
-                                         "Timestamp", "Description"])
-    return df
-
-if __name__ == "__main__":
-    data_frame = main()
-    # You can now work with 'data_frame' or save it to a file
+# Convert the list to a DataFrame
+df = pd.DataFrame(cpeDf, columns=cpe_headers)
