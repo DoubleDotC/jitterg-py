@@ -1,0 +1,1568 @@
+openapi: 3.0.0
+info:
+  title: Falcon Surface API
+  description: >
+    Falcon Surface API:
+    <br/>
+    <strong>footprints</strong> - provides information about companies attack surface:
+    Exposed services, domains, security issues and more...
+    <br/>
+    <strong>Insights</strong>
+    
+    <br/>
+    <strong>Search API</strong> - You can query by text on devices response’s banner and by filters listed below.
+    <br/>
+    <strong>Tags</strong> - allows you to view and update the custom user tags of assets / services / domains.
+    <br/>
+    <h3>In order to use the swagger interface please follow the following steps:</h3>
+    <ol>
+      <li>Click the authorize button</li>
+      <li>Fill in the token value in the following format: "Token XXX..."</li>
+      <li>Click the Authorize button in the modal</li>
+    </ol>
+
+  version: '2'
+servers:
+  - url: 'https://api.reposify.com/v2'
+    description: Falcon Surface API v2.0.
+components:
+  securitySchemes:
+    Auth:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    FootprintsListItem:
+      properties:
+        id:
+          type: string
+          example: 55d5416c-1b14-4b92-bd94-d7152a7744ae
+        timestamp:
+          type: string
+          format: date-time
+          example: '2018-05-01T10:13:49.602538'
+        status:
+          $ref: '#/components/schemas/FootprintStatus'
+          example: 'ready'
+      required:
+        - id
+        - timestamp
+    Footprint:
+      properties:
+        id:
+          type: string
+          example: 55d5416c-1b14-4b92-bd94-d7152a7744ae
+        timestamp:
+          type: string
+          format: date-time
+          example: '2018-05-01T10:13:49.602538'
+        status:
+          $ref: '#/components/schemas/FootprintStatus'
+          example: 'ready'
+        services_url:
+          type: string
+          format: uri
+          example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/services/
+        inventory_url:
+          type: string
+          format: uri
+          example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/inventory/
+        domains_url:
+          type: string
+          format: uri
+          example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/domains/
+    CreatedFootprint:
+      properties:
+        id:
+          type: string
+          example: 55d5416c-1b14-4b92-bd94-d7152a7744ae
+        timestamp:
+          type: string
+          format: date-time
+          example: '2018-05-01T10:13:49.602538'
+        status:
+          $ref: '#/components/schemas/FootprintStatus'
+          example: 'scheduled'
+        footprint_url:
+          type: string
+          format: uri
+          example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/
+    FootprintStatus:
+      type: string
+      enum:
+        - scheduled
+        - in-progress
+        - ready
+    ConfidenceLevel:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+    Domain:
+      properties:
+        domain:
+          type: string
+        confidence:
+          type: number
+          format: float
+    CIDR:
+      properties:
+        cidr:
+          type: string
+        confidence:
+          type: number
+          format: float
+    Inventory:
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/Domain'
+          example:
+           - {"domain": "acme.com", "confidence": 1.0}
+           - {"domain": "shopacme.com", "confidence": 0.86}
+           - {"domain": "shopacme.co.uk", "confidence": 0.97}
+           - {"domain": "store.acme.co.jp", "confidence": 1.0}
+        cidrs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CIDR'
+          example:
+           - {"cidr": "98.129.81.200/32", "confidence": 1.0}
+           - {"cidr": "98.129.81.199/32", "confidence": 1.0}
+           - {"cidr": "98.129.81.198/32", "confidence": 1.0}
+    Service:
+      properties:
+        ip_address:
+          type: string
+          example: 72.51.112.2
+        port:
+          type: integer
+          example: 80
+        transport:
+          type: string
+          enum:
+            - tcp
+            - udp
+        domain:
+          type: string
+          example: ec2-34-225-52-238.compute-1.amazonaws.com
+        isp:
+          type: string
+          example: Amazon.com, Inc.
+        asn:
+          type: integer
+          example: 14618
+        location:
+          type: object
+          example: {
+            "country_code": "US",
+            "country_name": "United States",
+            "geopoint": {
+              "lon": -97.822,
+              "lat": 37.751
+            }
+          }
+        timestamp:
+          type: string
+          format: date-time
+          example: 2018-12-22T06:01:49.018282
+        os:
+          type: string
+          example: linux
+        tech_stack:
+          type: array
+          example: [
+            "apache http_server 2.4.27"
+          ]
+        cpes:
+          type: array
+          example: [
+            "cpe:/a:apache:http_server:2.4.27"
+          ]
+        issues:
+          type: array
+          example: [
+            {
+              "issue_id": "CVE-2017-15710",
+              "cpe": "cpe:/a:apache:http_server:2.4.27"
+            }
+          ]
+        risk:
+          type: integer
+          example: 3
+        platform:
+          type: string
+          example: wordpress
+        confidence:
+          type: number
+          format: float
+          example: 7.8
+    Device:
+      properties:
+        ip_address:
+            type: string
+            example: 72.51.112.2
+        asn:
+            type: integer
+            example: 14618
+        isp:
+            type: string
+            example: Amazon.com, Inc.
+        domain:
+            type: string
+            example: ec2-34-225-52-238.compute-1.amazonaws.com
+        location:
+            type: object
+            example: {
+                "city": "Atlanta",
+                "country_code": "us",
+                "postal_code": "30348",
+                "country_name": "United states",
+                "geopoint": {
+                  "lat": 14.3738,
+                  "lon": 100.5631
+              },
+            }
+        services:
+            type: array
+            items:
+                type: object
+                example: {
+                "banners": "<html><title>Welcome To Router 550</title></html>",
+                "os": "4.4.0-38-generic x86_64 x86_64 GNU/Linux",
+                "timestamp": "2016-05-21T22:09:27.908",
+                "protocol": "http",
+                "name": "example.com",
+                "port": 80,
+                "transport": "tcp",
+                "version": "1.0",
+                "attributes": "{\"cookies\": []}",
+                "issue_ids": [
+                    "cve_cve-2007-3205",
+                    "internal_1",
+                    "internal_6",
+                    "internal_24"
+                ],
+                "category": "Web Assets",
+                "platform": "php"
+            }
+        timestamp:
+            type: string
+            format: date-time
+            example: 2018-12-22T06:01:49.018282
+    Domains:
+      properties:
+        domains:
+            type: array
+            items:
+                type: object
+                example: {
+                  "name": "dev.acme.com",
+                  "first_discovered_date": "2020-12-31T17:00:54.017",
+                  "isSubdomain": "Subdomain",
+                  "port": 80,
+                  "protocol": "http",
+                  "risk": 4,
+                  "SslExpirationDate": '03/05/2021',
+                  "hostingProvider": "Amazon.com, Inc.",
+                  "relatedIPSCount": 5,
+                  "confidence": "high",
+                  "subsidiaries": [
+                    "Acme"
+                  ],
+                  "isOfficial": "official",
+                  "discovered_by": "Falcon Surface"
+              }
+    InsightFilter:
+      properties:
+        ip_address:
+            description: IP Address or CIDR
+            type: string
+            example: 150.10.5.1 or 150.10.5.1/16
+        asn:
+            description: ASN number
+            type: string
+            example: 39478
+        isp:
+            description: ISP name
+            type: string
+            example: turner
+        domain:
+            description: Domain name
+            type: string
+            example: example.com
+        country_code:
+            description: Country ISO
+            type: string
+            example: us
+        country_name:
+            description: Country name
+            type: string
+            example: germany
+        region_name:
+            description: Region name
+            type: string
+            example: lowa
+        region_code:
+            description: Region code
+            type: string
+            example: 515
+        city:
+            description: City name
+            type: string
+            example: new york
+        postal_code:
+            description: Postal code
+            type: integer
+            example: 30843
+        area_code:
+            description: Area code
+            type: string
+            example: 5087
+        port:
+            description: Port
+            type: integer
+            example: 80
+        transport:
+            description: Transport layer
+            type: string
+            example: tcp
+        protocol:
+            description: Protocol
+            type: string
+            example: http
+        version:
+            description: Related versions
+            type: string
+            example: 1.0
+        os:
+            description: Operating system
+            type: string
+            example: os:linux
+  requestBodies:
+    HostScanRequest:
+  responses:
+    DownloadRedirect:
+      description: Redirects to a location for downloading the feed file.
+      content:
+        application/gzip:
+          schema:
+            type: string
+            format: file
+    UnauthorizedError:
+      description: Authentication information is missing or invalid.
+    BadParametersError:
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              details:
+                type: string
+                description: Information about which parameters are invalid.
+    ResourceNotFoundError:
+      description: Resource not found.
+    ResourceOverQuota:
+      description: Quota for resource was exceeded.
+    InternetScanJobResponse:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              job_id:
+                type: string
+                # example: "dc233e85-91ce-4f0c-a438-98fc4228731b"
+              ips:
+                type: string
+                # example: "*"
+              status:
+                type: string
+                example: pending
+    HostScanJobResponse:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              job_id:
+                type: string
+                example: dc233e85-91ce-4f0c-a438-98fc4228731b
+              ips:
+                type: string
+                example: "208.130.29.0/30, 66.88.77.33"
+              status:
+                type: string
+                example: pending
+    ScanJobStatusResponse:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              job_id:
+                type: string
+                example: dc233e85-91ce-4f0c-a438-98fc4228731b
+              status:
+                type: string
+                example: "processing"
+              created_date:
+                type: string
+                format: date-time
+                example: 2017-03-01T16:50:08.906Z
+  parameters:
+    insightsBannerParam:
+        in: query
+        name: banner
+        required: false
+        description: Device’s response text
+        schema:
+          type: string
+    insightsFilterParam:
+        in: query
+        name: filters
+        required: false
+        description: "Using filters parameter you can make your query more accurate to get the specific results you want. Filter syntax is “filter:value”, for example, if you want to search for devices from germany and with running operating system linux you’ll use the following filters: country_name:germany os:linux."
+        schema:
+          type: string
+
+security:
+  - Auth: []
+paths:
+  /company/{companyDomain}/footprints/:
+    get:
+      summary: List company footprints
+      description: ''
+      tags:
+        - footprints
+      parameters:
+        - in: path
+          name: companyDomain
+          required: true
+          description: The domain of the company to get the footprint of.
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: size
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+      responses:
+        '200':
+          description: A list of available footprints.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  footprints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FootprintsListItem'
+                  from:
+                    type: integer
+                    example: 0
+                  size:
+                    type: integer
+                    example: 25
+                  total:
+                    type: integer
+                    example: 250
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/footprints/{footprintId}/:
+    get:
+      summary: Get footprint by id
+      description: ''
+      tags:
+        - footprints
+      parameters:
+        - in: path
+          name: companyDomain
+          required: true
+          description: The domain of the company to get the footprint of.
+          schema:
+            type: string
+        - in: path
+          name: footprintId
+          required: true
+          description: The id of the footprint to get (use "LATEST" as footprintId in order to get the latest footprint).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A footprint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Footprint'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /company/{companyDomain}/footprints/{footprintId}/inventory/:
+    get:
+      summary: Get footprint inventory
+      description: ''
+      tags:
+       - footprints
+      parameters:
+        - in: path
+          name: companyDomain
+          required: true
+          description: The domain of the company to get the services for (use "LATEST" as footprintId in order to get the latest footprint).
+          schema:
+            type: string
+        - in: path
+          name: footprintId
+          required: true
+          description: The id of the footprint to get the services from.
+          schema:
+            type: string
+        - name: confidence
+          in: query
+          description: The minimum confidence level of inventory items to return.
+          schema:
+            type: string
+            enum:
+              - low
+              - medium
+              - high
+            default: medium
+      responses:
+        '200':
+          description: Footprint inventory.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inventory:
+                    $ref: '#/components/schemas/Inventory'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /company/{companyDomain}/footprints/{footprintId}/services/:
+    get:
+      summary: List footprint detected services
+      description: ''
+      tags:
+        - footprints
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to get the services for.
+          schema:
+            type: string
+        - name: footprintId
+          in: path
+          required: true
+          description: The id of the footprint to get the services from (use "LATEST" as footprintId in order to get the latest footprint).
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+        - name: confidence
+          in: query
+          description: The minimum confidence level of inventory items to return.
+          schema:
+            type: string
+            enum:
+              - low
+              - medium
+              - high
+            default: medium
+        - name: filter
+          in: query
+          description: filters to use in this request. (it can be copy from the web URL)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of services.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  cursor:
+                    type: string
+                    example: dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I=
+                  size:
+                    type: integer
+                    example: 25
+                  total:
+                    type: integer
+                    example: 250
+                  next_page_url:
+                    type: string
+                    example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/services?cursor=dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I&size=25/
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /company/{companyDomain}/footprints/{footprintId}/domains/:
+    get:
+      summary: List footprint detected domains
+      description: ''
+      tags:
+       - footprints
+      parameters:
+        - in: path
+          name: companyDomain
+          required: true
+          description: The domain of the company to get the domains for.
+          schema:
+            type: string
+        - in: path
+          name: footprintId
+          required: true
+          description: The id of the footprint to get the domains from (use "LATEST" as footprintId in order to get the latest footprint).
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+        - name: filter
+          in: query
+          description: filters to use in this request. (it can be copy from the web URL)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of domains.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Domains'
+                  cursor:
+                    type: string
+                    example: dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I=
+                  size:
+                    type: integer
+                    example: 25
+                  total:
+                    type: integer
+                    example: 250
+                  next_page_url:
+                    type: string
+                    example: https://api.reposify.com/v2/company/acme.com/footprints/55d5416c-1b14-4b92-bd94-d7152a7744ae/services?cursor=dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I&size=25/
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /company/{companyDomain}/footprints/{footprintId}/details/:
+    get:
+      summary: getting service/domain attributes and banners need to provide domain or service in the query
+      description: ''
+      tags:
+        - footprints
+      parameters:
+        - in: path
+          name: companyDomain
+          required: true
+          description: The domain of the company to get the domains for.
+          schema:
+            type: string
+        - in: path
+          name: footprintId
+          required: true
+          description: The id of the footprint to get the domains from (use "LATEST" as footprintId in order to get the latest footprint).
+          schema:
+            type: string
+        - name: domain
+          in: query
+          description: the domain to get the attributes and banners for, use domain:port.
+          schema:
+            type: string
+        - name: service
+          in: query
+          description: the service to get the attributes and banners for, use ip_address:port.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: banners & attributes of domain or serivce.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  size:
+                    type: string
+                    banners: <h1> Hello world! </h1>
+                  attributes:
+                    type: string
+                    example: {"ssl":{"cn": "example"}}
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /company/{companyDomain}/inbox/:
+    get:
+      summary: Get inbox entried for newly detected assets/services/issues
+      description: ''
+      tags:
+        - inbox
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to get the services for.
+          schema:
+            type: string
+        - name: timestamp
+          in: query
+          required: false
+          description: 'Filter results since timestamp (ISO 8601 Formatted)'
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+        - name: fetch_association_tree
+          in: query
+          required: false
+          description: 'set to true in order to fetch asset association tree'
+          schema:
+            type: string
+        - name: viewed
+          in: query
+          required: true
+          description: '"not_viewed" (default) - only shows Inbox item not viewed in previews requests. "viewed" - only shows Inbox items viewed in previuos requests. "all" - query all Inbox items.'
+          schema:
+            type: string
+            enum:
+              - not_viewed
+              - viewed
+              - all
+            default: not_viewed
+      responses:
+        '200':
+          description: List of services.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  cursor:
+                    type: string
+                    example: dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I=
+                  size:
+                    type: integer
+                    example: 25
+                  next_page_url:
+                    type: string
+                    example: https://api.reposify.com/v2/company/acme.com/inbox?cursor=dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I&size=25/
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+    post:
+      summary: Get inbox entried for newly detected assets/services/issues
+      description: ''
+      tags:
+        - inbox
+      requestBody:
+        required: false
+        description: inbox filter can be assign in inbox UI page, and than copy from hash URL to the request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: object
+                  example: { "include": { "riskCritical": true },"exclude": { "categories": [ "Network Assets" ] } }
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to get the services for.
+          schema:
+            type: string
+        - name: timestamp
+          in: query
+          required: false
+          description: 'Filter results since timestamp (ISO 8601 Formatted)'
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: ''
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+        - name: fetch_association_tree
+          in: query
+          required: false
+          description: 'set to true in order to fetch asset association tree'
+          schema:
+            type: string
+        - name: viewed
+          in: query
+          required: true
+          description: '"not_viewed" (default) - only shows Inbox item not viewed in previews requests. "viewed" - only shows Inbox items viewed in previuos requests. "all" - query all Inbox items.'
+          schema:
+            type: string
+            enum:
+              - not_viewed
+              - viewed
+              - all
+            default: not_viewed
+      responses:
+        '200':
+          description: List of services.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  cursor:
+                    type: string
+                    example: dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I=
+                  size:
+                    type: integer
+                    example: 25
+                  next_page_url:
+                    type: string
+                    example: https://api.reposify.com/v2/company/acme.com/inbox?cursor=dGhpcyBpcyBhIFJlcG9zaWZ5IHNlYXJjaCBjdXJzb3I&size=25/
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /insights/search:
+    get:
+      summary: Query Falcon Surface device insights
+      description: ''
+      tags:
+        - insights
+      parameters:
+        - $ref: '#/components/parameters/insightsBannerParam'
+        - $ref: '#/components/parameters/insightsFilterParam'
+        - in: query
+          name: page
+          required: false
+          description: Query's page number. Pagination is supported for up to 10,000 results.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of devices.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Device'
+                  pagination:
+                    type: object
+                    example: {
+                      "page_count": 5,
+                      "page": 1,
+                      "total_pages": 100,
+                      "has_more": true
+                    }
+                  total_count:
+                    type: integer
+                    example: 250
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  /insights/count:
+    get:
+      summary: Get number of devices matched to specified banner and filters.
+      description: ''
+      tags:
+        - insights
+      parameters:
+        - $ref: '#/components/parameters/insightsBannerParam'
+        - $ref: '#/components/parameters/insightsFilterParam'
+      responses:
+        '200':
+          description: Number of devices.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_count:
+                    type: integer
+                    example: 158473
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundError'
+  
+  /company/{companyDomain}/tags/get/:
+    post:
+      summary: get company's tags by ip/domain
+      description: get company's tags that corresponds to assets or domains
+      tags:
+        - tags
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to get tags for.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  example: ["208.67.0.0", "123.123.123.123", "208.67.0.1"]
+                  examples:
+                    Assets: ["208.67.0.0","123.123.123.123","208.67.0.1"]
+                    Domains: ["example.com"]
+                cidrs:
+                  type: array
+                  example: ["123.123.123.0/31"]
+                items_type:
+                  type: string
+                  example: "asset"
+                  examples:
+                    Asset: "asset"
+                    Domain: "domain"
+
+      responses:
+        '200':
+          description: A JSON of available items with corresponding tags, and items that are not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: object
+                    example: {
+                      "208.67.0.1": ["test-tag-1","test-tag-2"],
+                      "208.67.0.0": ["test-tag-1","test-tag-2"]
+                    }
+                  not_found:
+                    type: array
+                    example: ["123.123.123.123","123.123.123.0","123.123.123.1"]
+
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/tags/update/:
+      post:
+        summary: update company's ip/domain tags
+        description: update company's tags that corresponds to assets or domains, you can set new tags, add to existing, or remove from existing, you can clear all tags by setting an empty tags list
+        tags:
+          - tags
+        parameters:
+          - name: companyDomain
+            in: path
+            required: true
+            description: The domain of the company to get tags for.
+            schema:
+              type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    example: ["208.67.0.0","123.123.123.123","208.67.0.1"]
+                    examples:
+                      Assets: ["208.67.0.0","123.123.123.123","208.67.0.1"]
+                      Domains: ["example.com"]
+                  cidrs:
+                    type: array
+                    example: ["123.123.123.0/31"]
+                  items_type:
+                    type: string
+                    enum: ["asset", "domain"]
+                    example: "asset"
+                    examples:
+                      Asset: "asset"
+                      Domain: "domain"
+                  action:
+                    type: string
+                    enum: ["add", "remove", "set"]
+                    example: "add"
+                    examples:
+                      Add: "add"
+                      Remove: "remove"
+                      Set: "set"
+                  tags:
+                    type: array
+                    example: ["test-tag-1", "test-tag-2"]
+        responses:
+          '200':
+            description: A JSON of available items with corresponding tags, and items that are not found.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    result:
+                      type: object
+                      example: {
+                        "208.67.0.1": ["test-tag-1","test-tag-2"],
+                        "208.67.0.0": ["test-tag-1","test-tag-2"]
+                      }
+                    not_found:
+                      type: array
+                      example: ["123.123.123.123","123.123.123.0","123.123.123.1"]
+          '400':
+            $ref: '#/components/responses/BadParametersError'
+          '401':
+            $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/assets/add/:
+      post:
+        summary: Add assets (IP address, CIDR, domain, subdomain) to a company's inventory
+        description: Add IP addresses, CIDRs, domains or subdomains to a company's inventory - if you delete an asset, you can re-add it using this API. If an asset has already been added, it will not be re-added (in order to prevent duplicates), and won't appear in the response (as it is already in the inventory). Changes may take up to 24 hours to propogate.
+        tags:
+          - assets
+        parameters:
+          - name: companyDomain
+            in: path
+            required: true
+            description: The domain of the company to add the assets for.
+            schema:
+              type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      type: string
+                    example: ["example.com", "123.123.123.123", "123.123.123.0/31", "mail.example.com"]
+        responses:
+          '200':
+            description: A JSON with the IP addresses, domains, and CIDRs that were added.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  example: {
+                    "message": "assets were added, the changes may take up to 24 hours to propegate.",
+                    "added_domains": ["example.com", "mail.example.com"],
+                    "added_cidrs": ["123.123.123.0/31"],
+                    "added_ip_addresses": ["123.123.123.123"]
+                  }
+          '400':
+            $ref: '#/components/responses/BadParametersError'
+          '401':
+            $ref: '#/components/responses/UnauthorizedError'
+
+  /company/{companyDomain}/assets/delete/:
+    post:
+      summary: Delete assets (IP address, CIDR, domain, subdomain) from company's inventory
+      description: Delete IP addresses, CIDRs, domains or subdomain from a company's inventory - assets that you have added can be be deleted with this API. Changes will take effect immediately.
+      tags:
+        - assets
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to add the assets for.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assets:
+                  type: array
+                  items:
+                    type: string
+                  example: ["example.com","mail.example.com","123.123.123.123","123.123.123.0/31"]
+      responses:
+        '200':
+          description: A JSON with the IP addresses, domains, and CIDRs that were deleted, and the assets that were not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  "message": "request completed.",
+                  "not_found_domains": ["example.com", "mail.example.com"],
+                  "deleted_domains": [],
+                  "not_found_ips_and_cidrs": ["123.123.123.123", "123.123.123.0", "123.123.123.1"],
+                  "deleted_ip_and_cidrs": []
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/issues/create/:
+    post:
+      summary: Create a custom issue for your company
+      description: Create a custom issue that can be attached to domain or service.
+      tags:
+        - issues
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to create the custom issue for.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - issue_id
+                - title
+                - description
+                - solution
+                - attack_vector
+                - attack_complexity
+                - privileges_required
+                - base_score
+                - category
+              properties:
+                issue_id:
+                  type: string
+                  example: "company_id_5376"
+                title:
+                  type: string
+                  example: "code injection risk level A"
+                description:
+                  type: string
+                  example: "this issue may harm multiple machine that run PHP with privileged root access"
+                category:
+                  type: string
+                  example: "Code Injection"
+                solution:
+                  type: string
+                  example: "update PHP version and remove root access"
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - critical
+                attack_vector:
+                  type: string
+                  enum:
+                    - ""
+                    - NETWORK
+                    - LOCAL
+                    - ADJACENT_NETWORK
+                attack_complexity:
+                  type: string
+                  enum:
+                    - LOW
+                    - MEDIUM
+                    - HIGH
+                privileges_required:
+                  type: string
+                  enum:
+                    - NONE
+                    - LOW
+                    - HIGH
+                base_score:
+                  type: float
+                  minimum: 0
+                  maximum: 10
+                  example: 5.6
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "Information Exposure" , "Dev Environment" ]
+                overwrite:
+                  type: boolean
+                  description: "use for edit existing issue"
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  "services_updated_count": 1,
+                  "domains_updated_count": 0,
+                }
+
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/issues/list/:
+    get:
+      summary: Get list of custom issues
+      description: Get list of custom issues that created by the company.
+      tags:
+        - issues
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to list the custom issues from.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                 'issue_id': 'company_id_5376',
+                 'title': 'code injection risk level A',
+                 'description': 'this issue may harm multiple machine that run PHP with privileged root access',
+                 'solution': 'update PHP version and remove root access',
+                 'category': 'Code Injection',
+                 'severity': 'critical',
+                 'attack_complexity': 'LOW',
+                 'base_score': 9.0,
+                 'attack_vector': 'NETWORK',
+                 'privileges_required': 'HIGH',
+                 'tags': ['Information Exposure', 'Dev Environment']
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/issues/add/:
+    post:
+      summary: Add specified issues (cves) to service/domain
+      description: Add specified issues (Falcon Surface or custom) to domains & services. Changes take affect immediately.
+      tags:
+        - issues
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to add the issue to.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cves:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "CVE-2008-3844","No SPF Record Found" ]
+                services:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "51.222.62.219:22","1.2.3.4:443" ]
+                domains:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "acme.com","acme.org" ]
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  "services_updated_count": 1,
+                  "domains_updated_count": 0,
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/issues/delete/:
+    post:
+      summary: Delete issues (cves) from service/domain
+      description: Delete issues from domains & services. Changes take affect immediately.
+      tags:
+        - issues
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to delete the issue from.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cves:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "CVE-2008-3844","No SPF Record Found"]
+                services:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "51.222.62.219:22","1.2.3.4:443" ]
+                domains:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "acme.com","acme.org" ]
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  "services_updated_count": 1,
+                  "domains_updated_count": 0,
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/alerts/list/:
+      get:
+        summary: Get list of active alerts
+        description: Get list of active alerts that created by your organization.
+        tags:
+          - alerts
+        parameters:
+          - name: companyDomain
+            in: path
+            required: true
+            description: The domain of the company to get the alerts list from.
+            schema:
+              type: string
+        responses:
+          '200':
+            description: A JSON with the number of domain and services that been updated.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  example: {
+                    'id': '8ba89ecc-61c5-46e1-813a-cc6eab43c102',
+                    'name': 'Alert #1',
+                    'filters': {
+                      'include': {
+                        'perimeterOfficial': True
+                      },
+                      'exclude': {
+                        'riskLow': True
+                      }
+                    },
+                    'recipients': ['ciso@acme.com'],
+                    'alert_UTC_time': '22:15'
+                  }
+          '400':
+            $ref: '#/components/responses/BadParametersError'
+          '401':
+            $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/alerts/add/:
+    post:
+      summary: Create a new alert for your organization.
+      description: Create a new alert for your organization, with the requested filter.
+      tags:
+        - alerts
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to add the alert to.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - filters
+                - alert_UTC_time
+                - recipients
+              properties:
+                name:
+                  type: string
+                  example: "Alert #1"
+                filters:
+                  type: object
+                  description: Filter can be assign in inventory UI page, and than copy from hash URL to this request
+                  example: {"include":{"perimeterOfficial":true},"exclude":{"riskLow":true}}
+                alert_UTC_time:
+                  type: string
+                  description: Time in day (UTC) to send the alert
+                  example: "16:15"
+                recipients:
+                  type: array
+                  items:
+                    type: string
+                  example: [ "ciso@acme.com" , "admin@acme.com" ]
+                notes:
+                  type: string
+                  example: alert for important assets
+                update_alert_id:
+                  type: string
+                  description: alert id in case that you want to overwrite an existing alert
+                  example: "6ed2f86f-c43a-4e37-8288-0c8e6190af06"
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  'status': 'success',
+                  'id': '6ed2f86f-c43a-4e37-8288-0c8e6190af06'
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /company/{companyDomain}/alerts/delete/:
+    post:
+      summary: Delete an alert from your organization.
+      description: Delete an alert from your organization.
+      tags:
+        - alerts
+      parameters:
+        - name: companyDomain
+          in: path
+          required: true
+          description: The domain of the company to delete the alert from.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - alert_id
+              properties:
+                alert_id:
+                  type: string
+                  example: "6ed2f86f-c43a-4e37-8288-0c8e6190af06"
+      responses:
+        '200':
+          description: A JSON with the number of domain and services that been updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                example: {
+                  'status': 'success',
+                }
+        '400':
+          $ref: '#/components/responses/BadParametersError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
