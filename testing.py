@@ -1,144 +1,72 @@
-while True:
-    # print("Cursor: %s" % (cursor))
-    r2 = requests.get(
-        "url"
-        % (footprint, cursor),
-        # first run, cursor will always be ""
-        # what determines if the next cursor is None or something, it's the `footprint`
-        headers=headers,
-        verify=False,
-    )
-    data2 = r2.json()
-    cursor = data2["cursor"]
-    for j in data2["services"]:
-        service = []
-        domain = j["domain"] if "domain" in j else "-"
-        ip_address = j["ip_address"] if "ip_address" in j else "-"
-        port = j["port"] if "port" in j else "-"
-        isp = j["isp"] if "isp" in j else "-"
-        if "cpes" in j:
-            cpes_list = list(dict.fromkeys(j["cpes"]))
-            for k in cpes_list:
-                if "issues" in j:
-                    for issue in j["issues"]:
-                        # change this is add row
-                        # writer.writerow([ip_address,port,domain,isp,k])
-                        issue_severity = (
-                            issue["severity"] if "severity" in issue else "-"
-                        )
-                        issue_id = (
-                            issue["issue_id_label"]
-                            if "issue_id_label" in issue
-                            else "-"
-                        )
-                        issue_first_discovered_date = (
-                            issue["first_discovered_date"]
-                            if "first_discovered_date" in issue
-                            else "-"
-                        )
-                        issue_title = issue["title"] if "title" in issue else "-"
-                        issue_timestamp = (
-                            issue["timestamp"] if "timestamp" in issue else "-"
-                        )
-                        issue_description = (
-                            issue["description"] if "description" in issue else "-"
-                        )
-                        issue_cvss2_base_score = (
-                            issue["cvss2_base_score"]
-                            if "cvss2_base_score" in issue
-                            else "-"
-                        )
-                        cpeDf.append(
-                            [
-                                ip_address,
-                                port,
-                                domain,
-                                isp,
-                                k,
-                                issue_severity,
-                                issue_id,
-                                issue_cvss2_base_score,
-                                issue_title,
-                                issue_first_discovered_date,
-                                issue_timestamp,
-                                issue_description,
-                            ]
-                        )
+def parse_dlp_rules_to_csv(text, csv_output_path):
+    rules = []
+    lines = text.split('\n')
+    rule = {}
+    conditions = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+        if "-DLP-" in line:
+            if rule:
+                rule["Conditions"] = conditions
+                rules.append(rule)
+            rule = {"Rule Name": line, "Conditions": [],
+                    "Actions": "", "Status": ""}
+            conditions = []
+        elif "Conditions" in line:
+            i += 1
+            condition_lines = []
+            while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
+                condition_lines.append(lines[i].strip())
+                i += 1
+            if condition_lines:
+                conditions.append('\n'.join(condition_lines))
+            while i < len(lines) and "Actions" not in lines[i]:
+                if lines[i].strip() in ["And", "Or"]:
+                    condition_operator = lines[i].strip()
+                    i += 1
+                    condition_lines = []
+                    while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
+                        condition_lines.append(lines[i].strip())
+                        i += 1
+                    if condition_lines:
+                        conditions.append(
+                            f"{condition_operator}\n" + '\n'.join(condition_lines))
                 else:
-                    cpeDf.append(
-                        [
-                            ip_address,
-                            port,
-                            domain,
-                            isp,
-                            k,
-                            "-",
-                            "-",
-                            "-",
-                            "-",
-                            "-",
-                            "-",
-                            "-",
-                        ]
-                    )
-        else:
-            # change this to add row
-            # writer.writerow([ip_address, port, domain, isp, '-'])
-            if "issues" in j:
-                for issue in j["issues"]:
-                    issue_severity = issue["severity"] if "severity" in issue else "-"
-                    issue_id = (
-                        issue["issue_id_label"] if "issue_id_label" in issue else "-"
-                    )
-                    issue_first_discovered_date = (
-                        issue["first_discovered_date"]
-                        if "first_discovered_date" in issue
-                        else "-"
-                    )
-                    issue_title = issue["title"] if "title" in issue else "-"
-                    issue_timestamp = (
-                        issue["timestamp"] if "timestamp" in issue else "-"
-                    )
-                    issue_description = (
-                        issue["description"] if "description" in issue else "-"
-                    )
-                    issue_cvss2_base_score = (
-                        issue["cvss2_base_score"]
-                        if "cvss2_base_score" in issue
-                        else "-"
-                    )
-                    cpeDf.append(
-                        [
-                            ip_address,
-                            port,
-                            domain,
-                            isp,
-                            "-",
-                            issue_severity,
-                            issue_id,
-                            issue_cvss2_base_score,
-                            issue_title,
-                            issue_first_discovered_date,
-                            issue_timestamp,
-                            issue_description,
-                        ]
-                    )
-            else:
-                cpeDf.append(
-                    [
-                        ip_address,
-                        port,
-                        domain,
-                        isp,
-                        "-",
-                        "-",
-                        "-",
-                        "-",
-                        "-",
-                        "-",
-                        "-",
-                        "-",
-                    ]
-                )
-    if cursor is None:
-        break
+                    i += 1
+            continue
+        elif "Actions" in line:
+            actions = []
+            i += 1
+            while i < len(lines) and lines[i].strip() not in ["On", "Off"]:
+                actions.append(lines[i].strip())
+                i += 1
+            rule["Actions"] = '\n'.join(actions)
+            continue
+        elif line in ["On", "Off"]:
+            rule["Status"] = line
+            rule["Conditions"] = conditions
+            rules.append(rule)
+            rule = {}
+            conditions = []
+        i += 1
+
+    if rule:
+        rule["Conditions"] = conditions
+        rules.append(rule)
+
+    with open(csv_output_path, 'w', newline='', encoding='utf-8') as csvfile:
+        fieldnames = ["Rule Name", "Actions", "Status"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames + [f"Condition {i+1}" for i in range(
+            max(len(rule.get("Conditions", [])) for rule in rules))])
+        writer.writeheader()
+        for rule in rules:
+            row = {
+                "Rule Name": rule.get("Rule Name", ""),
+                "Actions": rule.get("Actions", ""),
+                "Status": rule.get("Status", "")
+            }
+            for idx, condition in enumerate(rule.get("Conditions", [])):
+                row[f"Condition {idx + 1}"] = condition
+            writer.writerow(row)
