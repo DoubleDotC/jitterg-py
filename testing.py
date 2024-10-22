@@ -1,226 +1,85 @@
-def parse_dlp_rules_to_csv(text, csv_output_path):
-    rules = []
-    lines = text.split('\n')
-    rule = {}
-    conditions = []
-    i = 0
-
-    while i < len(lines):
-        line = lines[i].strip()
-        if "-DLP-" in line:
-            if rule:
-                rule["Conditions"] = conditions
-                rules.append(rule)
-            rule = {"Rule Name": line, "Conditions": [],
-                    "Actions": "", "Status": ""}
-            conditions = []
-        elif "Conditions" in line:
-            i += 1
-            condition_lines = []
-            while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
-                condition_lines.append(lines[i].strip())
-                i += 1
-            if condition_lines:
-                conditions.append('\n'.join(condition_lines))
-            while i < len(lines) and "Actions" not in lines[i]:
-                if lines[i].strip() in ["And", "Or"]:
-                    condition_operator = lines[i].strip()
-                    i += 1
-                    condition_lines = []
-                    while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
-                        condition_lines.append(lines[i].strip())
-                        i += 1
-                    if condition_lines:
-                        conditions.append(
-                            f"{condition_operator}\n" + '\n'.join(condition_lines))
-                else:
-                    i += 1
-            continue
-        elif "Actions" in line:
-            actions = []
-            i += 1
-            while i < len(lines) and lines[i].strip() not in ["On", "Off"]:
-                actions.append(lines[i].strip())
-                i += 1
-            rule["Actions"] = '\n'.join(actions)
-            continue
-        elif line in ["On", "Off"]:
-            rule["Status"] = line
-            rule["Conditions"] = conditions
-            rules.append(rule)
-            rule = {}
-            conditions = []
-        i += 1
-
-    if rule:
-        rule["Conditions"] = conditions
-        rules.append(rule)
-
-    with open(csv_output_path, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ["Rule Name", "Actions", "Status"]
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames + [f"Condition {i+1}" for i in range(
-            max(len(rule.get("Conditions", [])) for rule in rules))])
-        writer.writeheader()
-        for rule in rules:
-            row = {
-                "Rule Name": rule.get("Rule Name", ""),
-                "Actions": rule.get("Actions", ""),
-                "Status": rule.get("Status", "")
-            }
-            for idx, condition in enumerate(rule.get("Conditions", [])):
-                row[f"Condition {idx + 1}"] = condition
-            writer.writerow(row)
-            
-            
-            
-            
-            
-
-import pymupdf
+import os
 import re
-import csv
+import pandas as pd
+import logging
 
-def crop_and_extract_text(pdf_path, output_path, text_output_path, filter_list):
-    # Open the PDF document
-    doc = pymupdf.open(pdf_path)
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-    # Date pattern to identify pages with headers to crop
-    date_pattern = re.compile(r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{1,2} (?:January|February|March|April|May|June|July|August|September|October|November|December), \d{4}\b")
+def extract_dlp_policies(directory_path, output_directory):
+    # Iterate over each file in the directory
+    for filename in os.listdir(directory_path):
+        if filename.endswith(".txt"):
+            try:
+                with open(os.path.join(directory_path, filename), 'r', encoding='utf-8') as file:
+                    content = file.read()
 
-    # Iterate through each page, skipping the first page
-    for page_num in range(1, len(doc)):
-        page = doc.load_page(page_num)
-        
-        # Extract the first part of the page text to check for the date pattern
-        initial_text = page.get_text("text", clip=pymupdf.Rect(0, 0, page.rect.width, 72))
-        
-        # Get the original dimensions of the page
-        page_rect = page.rect
+                    # Split policies by policy blocks (e.g., VIP, Global, Local, Local2)
+                    policies = re.split(r'(?<=Actions)\s+', content)
 
-        # Define the crop box dimensions based on the presence of the date pattern
-        if date_pattern.search(initial_text):
-            # If the date pattern is found, crop the top 1 inch and bottom 0.5 inch
-            top_crop = 72  # 1 inch = 72 points
-            bottom_crop = 36  # 0.5 inch = 36 points
-        else:
-            # Otherwise, only crop the bottom 0.5 inch
-            top_crop = 0
-            bottom_crop = 36
+                    vip_data = []
+                    global_data = []
+                    local_data = []
 
-        cropped_rect = pymupdf.Rect(
-            page_rect.x0,
-            page_rect.y0 + top_crop,
-            page_rect.x1,
-            page_rect.y1 - bottom_crop
-        )
-        
-        # Set the crop box for the page
-        page.set_cropbox(cropped_rect)
+                    for policy in policies:
+                        # Extract Policy Type
+                        match = re.search(r'-EPPA-DLP-(VIP|Global|Local|Local2)', policy)
+                        if not match:
+                            continue
 
-    # Save the cropped version of the PDF
-    doc.save(output_path)
+                        policy_type = match.group(1)
 
-    # Extract text from each cropped page, skipping the first page
-    visible_text = []
-    for page_num in range(1, len(doc)):
-        page = doc.load_page(page_num)
-        visible_text.append(page.get_text())
+                        # Extract Conditions
+                        conditions_match = re.search(r'Conditions\s+(.*?)\s+Actions', policy, re.DOTALL)
+                        conditions_text = conditions_match.group(1).strip() if conditions_match else ""
 
-    doc.close()
-    
-    # Combine the extracted text for all pages
-    combined_text = '\n'.join(visible_text)
-    
-    # Filter out lines that contain any of the strings or regex patterns in filter_list
-    filtered_lines = []
-    for line in combined_text.split('\n'):
-        if not any(re.search(pattern, line) for pattern in filter_list):
-            filtered_lines.append(line)
-    
-    final_text = '\n'.join(filtered_lines)
-    
-    # Export the final text to a .txt file
-    with open(text_output_path, 'w', encoding='utf-8') as text_file:
-        text_file.write(final_text)
-    
-    return final_text
+                        # Extract specific whitelist information (emails, domains, etc.)
+                        emails = re.findall(r'send address contains words:\s*(.*)', conditions_text)
+                        recipient_domains = re.findall(r'Recipient domain is:\s*(.*)', conditions_text)
+                        sender_domains = re.findall(r'Sender domain is:\s*(.*)', conditions_text)
 
-def parse_dlp_rules_to_csv(text, csv_output_path):
-    rules = []
-    lines = text.split('\n')
-    rule = {}
-    conditions = []
-    i = 0
-    
-    while i < len(lines):
-        line = lines[i].strip()
-        if "-DLP-" in line:
-            if rule:
-                rule["Conditions"] = conditions
-                rules.append(rule)
-            rule = {"Rule Name": line, "Conditions": [], "Actions": "", "Status": ""}
-            conditions = []
-        elif "Conditions" in line:
-            i += 1
-            condition_lines = []
-            while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
-                condition_lines.append(lines[i].strip())
-                i += 1
-            if condition_lines:
-                conditions.append('\n'.join(condition_lines))
-            while i < len(lines) and "Actions" not in lines[i]:
-                if lines[i].strip() in ["And", "Or"]:
-                    condition_operator = lines[i].strip()
-                    i += 1
-                    condition_lines = []
-                    while i < len(lines) and "Actions" not in lines[i] and lines[i].strip() not in ["And", "Or"]:
-                        condition_lines.append(lines[i].strip())
-                        i += 1
-                    if condition_lines:
-                        conditions.append(f"{condition_operator}\n" + '\n'.join(condition_lines))
-                else:
-                    i += 1
-            continue
-        elif "Actions" in line:
-            actions = []
-            i += 1
-            while i < len(lines) and lines[i].strip() not in ["On", "Off"]:
-                actions.append(lines[i].strip())
-                i += 1
-            rule["Actions"] = '\n'.join(actions)
-            continue
-        elif line in ["On", "Off"]:
-            rule["Status"] = line
-            rule["Conditions"] = conditions
-            rules.append(rule)
-            rule = {}
-            conditions = []
-        i += 1
-    
-    if rule:
-        rule["Conditions"] = conditions
-        rules.append(rule)
+                        # Split the found items by comma and clean whitespace
+                        emails = [email.strip() for email in ','.join(emails).split(',') if email.strip()]
+                        recipient_domains = [domain.strip() for domain in ','.join(recipient_domains).split(',') if domain.strip()]
+                        sender_domains = [domain.strip() for domain in ','.join(sender_domains).split(',') if domain.strip()]
 
-    with open(csv_output_path, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ["Rule Name", "Actions", "Status"]
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames + [f"Condition {i+1}" for i in range(max(len(rule.get("Conditions", [])) for rule in rules))])
-        writer.writeheader()
-        for rule in rules:
-            row = {
-                "Rule Name": rule.get("Rule Name", ""),
-                "Actions": rule.get("Actions", ""),
-                "Status": rule.get("Status", "")
-            }
-            for idx, condition in enumerate(rule.get("Conditions", [])):
-                row[f"Condition {idx + 1}"] = condition
-            writer.writerow(row)
+                        # Collect data based on policy type
+                        def add_to_data(data_list, policy_type, item_type, items):
+                            for item in items:
+                                data_list.append({
+                                    "Policy Type": policy_type,
+                                    "Whitelisted Item Type": item_type,
+                                    "Item": item
+                                })
 
-# Example usage:
-pdf_path = "input.pdf"
-output_path = "cropped_output.pdf"
-text_output_path = "extracted_text.txt"
-csv_output_path = "dlp_rules.csv"
-filter_list = ["pattern1", "pattern2", r"regex_pattern"]
-text = crop_and_extract_text(pdf_path, output_path, text_output_path, filter_list)
-parse_dlp_rules_to_csv(text, csv_output_path)
+                        if emails:
+                            add_to_data(vip_data if policy_type == "VIP" else global_data if policy_type == "Global" else local_data, policy_type, "Whitelisted Email", emails)
+                        if recipient_domains:
+                            add_to_data(vip_data if policy_type == "VIP" else global_data if policy_type == "Global" else local_data, policy_type, "Whitelisted Recipient Domain", recipient_domains)
+                        if sender_domains:
+                            add_to_data(vip_data if policy_type == "VIP" else global_data if policy_type == "Global" else local_data, policy_type, "Whitelisted Sender Domain", sender_domains)
 
+                    # Convert collected data into pandas DataFrames
+                    vip_df = pd.DataFrame(vip_data)
+                    global_df = pd.DataFrame(global_data)
+                    local_df = pd.DataFrame(local_data)
+
+                    # Create Excel writer
+                    output_file_path = os.path.join(output_directory, f"{filename.split('.')[0]}_DLP_Policies.xlsx")
+                    with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+                        if not vip_df.empty:
+                            vip_df.to_excel(writer, sheet_name="VIP Policy", index=False)
+                        if not global_df.empty:
+                            global_df.to_excel(writer, sheet_name="Global Policy", index=False)
+                        if not local_df.empty:
+                            local_df.to_excel(writer, sheet_name="Local Policy", index=False)
+
+                    logging.info(f"Excel file saved: {output_file_path}")
+
+            except Exception as e:
+                logging.error(f"Error processing file {filename}: {e}")
+
+# Example usage
+directory_path = "path/to/txt/files"  # Replace with the actual directory path containing the text files
+output_directory = "path/to/output"  # Replace with the actual directory path for Excel files
+extract_dlp_policies(directory_path, output_directory)
