@@ -28,7 +28,7 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
 
                     for policy in policies:
                         # Extract Policy Type
-                        match = re.search(r'-EPPA-DLP-(VIP|Global|Local|Local2)', policy)
+                        match = re.search(r'-EPPA-DLP-(VIP|Global|Local|Local2|Local-2)', policy)
                         if not match:
                             continue
 
@@ -39,7 +39,7 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                         conditions_text = conditions_match.group(1).strip() if conditions_match else ""
 
                         # Extract specific whitelist information (emails, domains, etc.)
-                        emails = re.findall(r'(?:send address contains words|Sender is):\s*(.*)', conditions_text)
+                        emails = re.findall(r'(?:Sender address contains words|Sender is|Sender is member of):\s*(.*)', conditions_text)
                         recipient_domains = re.findall(r'Recipient domain is:\s*(.*)', conditions_text)
                         sender_domains = re.findall(r'Sender domain is:\s*(.*)', conditions_text)
                         whitelisted_recipients = re.findall(r'Recipient address contains words:\s*(.*)', conditions_text)
@@ -115,7 +115,7 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                                 unified_data["Number of Emails Received"].append(email_count)
 
                         # Add data for Local Policy
-                        elif policy_type in ["Local", "Local2"]:
+                        elif policy_type in ["Local", "Local2", "Local-2"]:
                             for sender in emails + sender_domains:
                                 filtered_logs = count_emails(sender_condition=sender, recipient_condition="|".join(recipient_domains + whitelisted_recipients))
                                 email_count = len(filtered_logs)
