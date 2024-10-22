@@ -60,18 +60,28 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                             filtered_logs = email_logs[email_logs['Sender'].str.contains(sender_condition, na=False)]
                             if recipient_condition:
                                 filtered_logs = filtered_logs[filtered_logs['Recipients'].apply(
-                                    lambda recipients: any(recipient_condition in recipient for recipient in recipients)
+                                    lambda recipients: any(re.match(recipient_condition, recipient) for recipient in recipients)
                                 )]
                             return len(filtered_logs)
 
                         # Add data for VIP Policy
-                        if policy_type == "VIP" and emails:
+                        if policy_type == "VIP":
                             for email in emails:
                                 email_count = count_emails(email)
                                 unified_data["Policy Type"].append("VIP")
                                 unified_data["Whitelisted Item Type"].append("Whitelisted Email")
                                 unified_data["Item"].append(email)
                                 unified_data["Number of Emails Sent"].append(email_count)
+                            for domain in recipient_domains:
+                                unified_data["Policy Type"].append("VIP")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient Domain")
+                                unified_data["Item"].append(domain)
+                                unified_data["Number of Emails Sent"].append("")
+                            for recipient in whitelisted_recipients:
+                                unified_data["Policy Type"].append("VIP")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient")
+                                unified_data["Item"].append(recipient)
+                                unified_data["Number of Emails Sent"].append("")
 
                         # Add data for Global Policy
                         elif policy_type == "Global":
@@ -81,6 +91,16 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                                 unified_data["Whitelisted Item Type"].append("Whitelisted Sender")
                                 unified_data["Item"].append(sender)
                                 unified_data["Number of Emails Sent"].append(email_count)
+                            for domain in recipient_domains:
+                                unified_data["Policy Type"].append("Global")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient Domain")
+                                unified_data["Item"].append(domain)
+                                unified_data["Number of Emails Sent"].append("")
+                            for recipient in whitelisted_recipients:
+                                unified_data["Policy Type"].append("Global")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient")
+                                unified_data["Item"].append(recipient)
+                                unified_data["Number of Emails Sent"].append("")
 
                         # Add data for Local Policy
                         elif policy_type in ["Local", "Local2"]:
@@ -90,6 +110,16 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                                 unified_data["Whitelisted Item Type"].append("Whitelisted Sender")
                                 unified_data["Item"].append(sender)
                                 unified_data["Number of Emails Sent"].append(email_count)
+                            for domain in recipient_domains:
+                                unified_data["Policy Type"].append("Local")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient Domain")
+                                unified_data["Item"].append(domain)
+                                unified_data["Number of Emails Sent"].append("")
+                            for recipient in whitelisted_recipients:
+                                unified_data["Policy Type"].append("Local")
+                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient")
+                                unified_data["Item"].append(recipient)
+                                unified_data["Number of Emails Sent"].append("")
 
                         # Convert the unified_data dictionary to DataFrame and append
                         policy_data.append(pd.DataFrame(unified_data))
