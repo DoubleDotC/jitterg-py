@@ -100,6 +100,7 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                         # Process VIP Policy: Count emails sent by whitelisted senders
                         if policy_type == "VIP":
                             vip_logs = filter_logs_by_sender(all_senders)
+                            related_logs.append(vip_logs)
                             for sender in all_senders:
                                 count = vip_logs[vip_logs['Sender'] == sender].shape[0]
                                 unified_data["Policy Type"].append("VIP")
@@ -118,6 +119,8 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                         elif policy_type == "Global":
                             global_logs_sender = filter_logs_by_sender(all_senders)
                             global_logs_recipient = filter_logs_by_recipient(whitelisted_recipients, recipient_domains)
+                            related_logs.append(global_logs_sender)
+                            related_logs.append(global_logs_recipient)
                             for sender in all_senders:
                                 count = global_logs_sender[global_logs_sender['Sender'] == sender].shape[0]
                                 unified_data["Policy Type"].append("Global")
@@ -151,6 +154,7 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                                     for recipient in recipient_list
                                 )
                             )]
+                            related_logs.append(local_logs)
                             for sender in all_senders:
                                 count = local_logs[local_logs['Sender'] == sender].shape[0]
                                 unified_data["Policy Type"].append("Local")
@@ -164,65 +168,4 @@ def extract_dlp_policies(directory_path, output_directory, email_logs_path):
                                 unified_data["Whitelisted Item Type"].append("Whitelisted Recipient Email")
                                 unified_data["Item"].append(recipient)
                                 unified_data["Number of Emails Sent"].append("")
-                                unified_data["Number of Emails Received"].append(count)
-                            for domain in recipient_domains:
-                                count = local_logs[local_logs['Recipients'].apply(
-                                    lambda x: any(recipient.split('@')[-1] == domain for recipient in x)
-                                )].shape[0]
-                                unified_data["Policy Type"].append("Local")
-                                unified_data["Whitelisted Item Type"].append("Whitelisted Recipient Domain")
-                                unified_data["Item"].append(domain)
-                                unified_data["Number of Emails Sent"].append("")
-                                unified_data["Number of Emails Received"].append(count)
-
-                        # Collect the unified data into the appropriate policy list
-                        if policy_type == "VIP":
-                            vip_data.append(pd.DataFrame(unified_data))
-                        elif policy_type == "Global":
-                            global_data.append(pd.DataFrame(unified_data))
-                        elif policy_type in ["Local", "Local2"]:
-                            local_data.append(pd.DataFrame(unified_data))
-
-                    # Concatenate all policy DataFrames
-                    vip_df = pd.concat(vip_data, ignore_index=True) if vip_data else pd.DataFrame()
-                    global_df = pd.concat(global_data, ignore_index=True) if global_data else pd.DataFrame()
-                    local_df = pd.concat(local_data, ignore_index=True) if local_data else pd.DataFrame()
-
-                    # Create policy explanation text
-                    policy_explanation = (
-                        "VIP Policies: Whitelisted emails can send emails to any recipient.\n"
-                        "Global Policies: Whitelisted senders can send emails to anyone, and anyone can send emails to whitelisted recipient domains or users.\n"
-                        "Local Policies: Whitelisted senders can only send emails to whitelisted recipient domains or users.\n"
-                        "\n"
-                        "Number of Emails Sent: This column represents how many emails were sent by the whitelisted entity.\n"
-                        "Number of Emails Received: This column represents how many emails were received by the whitelisted recipient domain or user."
-                    )
-
-                    # Create Excel writer
-                    output_file_path = os.path.join(output_directory, f"{filename.split('.')[0]}_DLP_Policies.xlsx")
-                    with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
-                        if not vip_df.empty:
-                            vip_df.to_excel(writer, sheet_name="VIP Policy", index=False)
-                        if not global_df.empty:
-                            global_df.to_excel(writer, sheet_name="Global Policy", index=False)
-                        if not local_df.empty:
-                            local_df.to_excel(writer, sheet_name="Local Policy", index=False)
-                        
-                        # Add the Policy Explanation Sheet with formatted text
-                        workbook = writer.book
-                        worksheet = workbook.add_worksheet("Policy Explanation")
-                        wrap_format = workbook.add_format({'text_wrap': True, 'valign': 'top'})
-                        
-                        worksheet.write(0, 0, policy_explanation, wrap_format)
-                        worksheet.set_column(0, 0, 100)  # Set column width for better readability
-
-                    logging.info(f"Excel file saved: {output_file_path}")
-
-            except Exception as e:
-                logging.error(f"Error processing file {filename}: {e}")
-
-# Example usage
-directory_path = "path/to/txt/files"  # Replace with the actual directory path containing the text files
-output_directory = "path/to/output"  # Replace with the actual directory path for Excel files
-email_logs_path = "path/to/email_logs.csv"  # Path to the email logs CSV file
-extract_dlp_policies(directory_path, output_directory, email_logs_path)
+                                unified_data[
