@@ -111,3 +111,37 @@ def is_valid_recipient_domain(domain: str) -> bool:
             return False
 
     return True
+    
+def check_invalid_characters(s: str) -> bool:
+    """
+    A final, robust check for invalid characters in a domain or email string.
+    Returns True if the string is free of invalid characters/patterns, 
+    otherwise returns False.
+    """
+
+    # Empty strings should never be considered valid for domain/email parts.
+    if not s:
+        return False
+
+    # Disallowed characters set
+    invalid_chars = set(" <>")
+
+    # Check for invalid chars such as spaces and angle brackets
+    if any(ch in invalid_chars for ch in s):
+        return False
+
+    # Check for ASCII control characters (0-31 and 127)
+    # These include tabs, newlines, and other non-printable chars.
+    # We'll ensure all characters are >= 32 and < 127 (basic ASCII printable range),
+    # except we need to allow '.' and '-' and typical alphanumerics.
+    # If stricter rules apply, feel free to refine the allowed range.
+    for ch in s:
+        if ord(ch) < 32 or ord(ch) == 127:  # Control or DEL char
+            return False
+
+    # Check that it does not start or end with '.' or '-'
+    if s[0] in ['.', '-'] or s[-1] in ['.', '-']:
+        return False
+
+    # If all checks passed, the string does not have the commonly invalid characters.
+    return True
